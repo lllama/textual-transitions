@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "transitions"
+version = "0.1.0"
+description = ""
+authors = ["Felix Ingram <f.ingram@gmail.com>"]
+readme = "README.md"
+packages = [{include = "transitions", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+textual = "0.7.0"
+
+[tool.poetry.scripts]
+transitions = "transitions.__main__:run"
+
+[tool.poetry.group.dev.dependencies]
+black = {version = "^22.10.0", allow-prereleases = true}
+aiohttp = "^3.8.3"
+msgpack = "^1.0.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

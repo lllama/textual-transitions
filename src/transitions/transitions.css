@@ -1,0 +1,19 @@
+Screen {
+    layout: grid;
+    grid-size: 3 3;
+}
+
+Button {
+    height: 100%;
+    width: 100%;
+}
+
+Screen TransitionScreen,
+TransitionScreen {
+    layout: vertical;
+}
+
+TransitionScreen TransitionContainer {
+    layout: vertical;
+    width: 100%;
+}
