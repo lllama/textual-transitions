@@ -30,52 +30,103 @@ class TransitionContainer(Widget):
     """
     transition_offset = reactive(0.0)
 
-    def __init__(self, content1, content2, direction):
-        self.direction = direction
-        log("hello")
-        self.content1_info = content1
-        self.content2_info = content2
-        self.content1 = Text.from_ansi(content1.content)
-        self.content2 = Text.from_ansi(content2.content)
-        self.width = self.content1_info.size[0]
-        self.height = self.content1_info.size[1]
+    def __init__(self, from_screen, to_screen, transition):
+        self.transition = transition
+        self.from_screen_info = from_screen
+        self.to_screen_info = to_screen
+        self.from_screen = Text.from_ansi(from_screen.content)
+        self.to_screen = Text.from_ansi(to_screen.content)
+        self.width = self.from_screen_info.size[0]
+        self.height = self.from_screen_info.size[1]
         super().__init__()
 
     def get_content_height(self, container, viewport, width: int) -> int:
-        return self.content1_info.size[1]
+        return self.from_screen_info.size[1]
 
     def get_content_width(self, container, viewport) -> int:
-        return self.content1_info.size[0]
-
-    # def watch_transition_offset(self, new_value):
-    #     log(round(new_value))
-    #     self.content = self.content[round(new_value) :]
-    #     # log(len(self.content))
+        return self.from_screen_info.size[0]
 
     def __rich_console__(self, console, options):
-        lines = self.content1.split()
-        lines.extend(self.content2.split())
+        match self.transition:
+            case "slideover_up":
+                lines = self.from_screen.split()[
+                    0 : self.height - round(self.transition_offset)
+                ]
+                lines.extend(self.to_screen.split()[0 : round(self.transition_offset)])
 
-        yield from lines[
-            round(self.transition_offset) : round(self.transition_offset) + self.height
-        ]
+                yield from lines
+            case "wipe_up":
+                lines = self.from_screen.split()[
+                    0 : self.height - round(self.transition_offset)
+                ]
+                lines.extend(
+                    self.to_screen.split()[
+                        self.height - round(self.transition_offset) : self.height
+                    ]
+                )
+                yield from lines
+            case "slide_up":
+                lines = self.from_screen.split()
+                lines.extend(self.to_screen.split())
+
+                yield from lines[
+                    round(self.transition_offset) : round(self.transition_offset)
+                    + self.height
+                ]
+            case "slideover_down":
+                lines = self.to_screen.split()[
+                    self.height - round(self.transition_offset) : self.height
+                ]
+
+                lines.extend(
+                    self.from_screen.split()[
+                        round(self.transition_offset) : self.height
+                    ]
+                )
+
+                yield from lines
+            case "slide_down":
+                lines = self.to_screen.split()
+                lines.extend(self.from_screen.split())
+
+                offset = (-1 * round(self.transition_offset)) + self.height
+
+                yield from lines[offset : offset + self.height]
+            case "wipe_down":
+                lines = self.to_screen.split()[0 : round(self.transition_offset)]
+                lines.extend(
+                    self.from_screen.split()[
+                        round(self.transition_offset) : self.height
+                    ]
+                )
+
+                yield from lines
+            case "slide_left":
+                from_columns = [
+                    x[round(self.transition_offset) : self.width]
+                    for x in self.from_screen.split()
+                ]
+                to_columns = [
+                    x[0 : round(self.transition_offset)] for x in self.to_screen.split()
+                ]
+
+                for (from_line, to_line) in zip(from_columns, to_columns):
+                    yield Text("").join([from_line, to_line])
+            case "slide_right":
+                from_columns = [
+                    x[0 : self.width - round(self.transition_offset) - 1]
+                    for x in self.from_screen.split()
+                ]
+                to_columns = [
+                    x[self.width - 1 - round(self.transition_offset) : self.width]
+                    for x in self.to_screen.split()
+                ]
+
+                for lines in zip(to_columns, from_columns):
+                    yield Text("").join(lines)
 
     def render(self):
         return self
-        return Text.join(
-            "",
-            self.content[
-                round(self.transition_offset) : round(self.transition_offset)
-                + self.height
-            ],
-        )
-        return "".join(
-            x
-            for x in self.content[
-                round(self.transition_offset) : round(self.transition_offset)
-                + self.height
-            ]
-        )
 
 
 class TransitionScreen(Screen):
@@ -90,70 +141,67 @@ class TransitionScreen(Screen):
     }
     """
 
-    def __init__(self, direction):
-        self.direction = direction
+    def __init__(self, transition, from_screen, to_screen):
+        self.from_screen = from_screen
+        self.to_screen = to_screen
+        self.transition = transition
         super().__init__()
 
     def compose(self) -> ComposeResult:
-        self.screen2_content: ScreenInfo = self.app.screen_transitions.pop()
-        self.screen1_content: ScreenInfo = self.app.screen_transitions.pop()
-        self.app.log(self.direction)
         self.container = TransitionContainer(
-            self.screen1_content, self.screen2_content, direction=self.direction
+            self.from_screen, self.to_screen, transition=self.transition
         )
         yield self.container
 
+    def finish_transition(self):
+        self.app.pop_screen()
+
     def on_show(self, event) -> None:
-        self.app.log("[blue bold]Ready to scroll!")
-        delay = 5.0
-        # self.app.log(len(self.screen1_content.content.splitlines()))
-        self.app.log(self.screen1_content.size[1])
-        self.container.animate(
-            "transition_offset",
-            self.screen1_content.size[1],
-            # easing="in_sine",
-            duration=delay,
-            on_complete=self.app.pop_screen,
-        )
-        # self.container.scroll_end(animate=True, duration=delay)
-        # self.set_timer(delay, self.app.pop_screen)
+        delay = 2
+        match self.transition:
+            case "slide_up" | "slide_down":
+                self.container.animate(
+                    "transition_offset",
+                    self.from_screen.size[1],
+                    duration=delay,
+                    on_complete=self.finish_transition,
+                )
+            case "slide_left" | "slide_right":
+                self.container.animate(
+                    "transition_offset",
+                    self.from_screen.size[0],
+                    duration=delay,
+                    on_complete=self.finish_transition,
+                )
+            case _:
+                self.container.animate(
+                    "transition_offset",
+                    self.from_screen.size[1],
+                    duration=delay,
+                    on_complete=self.finish_transition,
+                )
 
 
 class LiquidScreen(Screen):
-    def on_screen_suspend(self, event):
-        self.app.log("[red bold]SUSPENDING QUIT!!")
-
-    def on_screen_resume(self, event):
-        self.app.log("[red bold]RESUMING!!")
-        self.app.log(f"{len(self.app.screen_transitions)=}")
+    def on_screen_resume(self) -> None:
+        self.focus()
 
     def on_show(self, *args, **kwargs):
-        self.app.log(f"{self} - on_Show")
-        if len(self.app.screen_transitions) != 1:
-            return
-        width, height = self.size
-        console = Console(
-            width=width,
-            height=height,
-            file=io.StringIO(),
-            force_terminal=True,
-            color_system="truecolor",
-            record=True,
-            legacy_windows=False,
-        )
-        screen_render = self.app.screen._compositor.render(full=True)
-        console.print(screen_render)
-        text = console.export_text(styles=True)
+        self.app.screen_showed()
+        if 0:
+            self.app.log(f"{self} - on_Show")
+            width, height = self.size
+            console = Console(
+                width=width,
+                height=height,
+                file=io.StringIO(),
+                force_terminal=True,
+                color_system="truecolor",
+                record=True,
+                legacy_windows=False,
+            )
+            screen_render = self.app.screen._compositor.render(full=True)
+            console.print(screen_render)
+            text = console.export_text(styles=True)
 
-        if not hasattr(self.app, "screen_transitions"):
-            self.app.screen_transitions = [ScreenInfo(size=self.size, content=text)]
-        else:
-            self.app.screen_transitions.append(ScreenInfo(size=self.size, content=text))
-
-        self.app.log("exported!")
-        self.app.log(len(self.app.screen_transitions))
-
-        self.app.log(f"{len(self.app.screen_transitions)=}")
-        if not len(self.app.screen_transitions) % 2:
-            self.app.log("transitioning")
-            self.app.push_screen(TransitionScreen(direction=self.DIRECTION))
+            self.app.log(f"text from screen: {len(text)=}")

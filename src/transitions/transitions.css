@@ -8,6 +8,10 @@ Button {
     width: 100%;
 }
 
+Static {
+    align: center middle;
+}
+
 Screen TransitionScreen,
 TransitionScreen {
     layout: vertical;
