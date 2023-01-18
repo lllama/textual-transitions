@@ -1,18 +1,11 @@
-import io
-import asyncio
 from dataclasses import dataclass
 
-from rich.console import Console
 from rich.text import Text
-from rich.segment import Segment
 from textual import log
-from textual.geometry import Region
 from textual.screen import Screen
 from textual.widget import Widget
 from textual.widgets import Label
-from textual.strip import Strip
 from textual.widgets import Static
-from textual.containers import Vertical
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual import events
@@ -39,15 +32,11 @@ class Floaty(Label):
     def __init__(self, original: Widget, *args, **kwargs):
         self.original = original
         super().__init__(*args, **kwargs)
-        log(original.region)
         self.styles.margin = (original.region.y, 0, 0, original.region.x)
-        # self.styles.background = "red"
         self.offset_x = original.region.x
         self.offset_y = original.region.y
-        # self.styles.margin = (original.region.y, 0, 0, original.region.x)
 
     def watch_offset_x(self, new_value):
-        log(new_value)
         margin = self.styles.margin
         self.styles.margin = (margin.top, margin.right, margin.bottom, round(new_value))
 
@@ -61,8 +50,6 @@ class Floaty(Label):
         )
 
     def on_show(self):
-        log(self.region)
-        log(self.styles)
         self.parent.float_this()
 
 
@@ -234,16 +221,11 @@ class TransitionContainer(Widget):
                     yield self.to_screen
 
     def morph(self):
-        log("morphing")
-        log("Finding matching IDs")
         from_ids = set(
             x.id for x in self.from_screen_info.screen.walk_children() if x.id
         )
         to_ids = set(x.id for x in self.to_screen_info.screen.walk_children() if x.id)
-        log(f"{from_ids=}")
-        log(f"{to_ids=}")
         morph_id = from_ids.intersection(to_ids)
-        log(morph_id)
         if len(morph_id) > 1 or not morph_id:
             raise Exception()
         morph_id = morph_id.pop()
@@ -251,8 +233,6 @@ class TransitionContainer(Widget):
         self.from_widget = self.from_screen_info.screen.query_one(f"#{morph_id}")
         self.to_widget = self.to_screen_info.screen.query_one(f"#{morph_id}")
         self.floaty = Floaty(self.from_widget, self.from_widget.renderable)
-        log(self.from_widget, self.from_widget.region)
-        log(self.to_widget, self.to_widget.region)
         self.floaty.styles.layer = "slider"
         self.floaty.styles.border = self.from_widget.styles.border
         self.floaty.styles.width = self.from_widget.region.width
@@ -409,19 +389,3 @@ class LiquidScreen(Screen):
         if not self.app._dom_ready:
             self.app.post_message_no_wait(events.Ready(self))
             self.app._dom_ready = True
-
-        # lines: list[Strip] = self.render_lines(Region(0, 0, *self.app.size))
-        # text = Text("\n").join(
-        #     Text("").join(Text(segment.text, style=segment.style))
-        #     for strip in lines
-        #     for segment in strip._segments
-        # )
-        # self.app.log(text)
-        # for strip in lines:
-        #     line = Text("").join(
-        #         Text(segment.text, style=segment.style) for segment in strip._segments
-        #     )
-        #     self.app.log(line)
-        # for segment in strip._segments:
-        #     self.app.log(segment)
-        #     self.app.log(Text(segment.text, style=segment.style))

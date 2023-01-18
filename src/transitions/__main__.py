@@ -1,5 +1,5 @@
-from .app import TransitionsApp
+from .demo import DemoApp
 
 
 def run():
-    TransitionsApp().run()
+    DemoApp().run()
