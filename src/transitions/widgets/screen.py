@@ -4,19 +4,66 @@ from dataclasses import dataclass
 
 from rich.console import Console
 from rich.text import Text
+from rich.segment import Segment
 from textual import log
+from textual.geometry import Region
 from textual.screen import Screen
 from textual.widget import Widget
+from textual.widgets import Label
+from textual.strip import Strip
 from textual.widgets import Static
 from textual.containers import Vertical
 from textual.app import ComposeResult
 from textual.reactive import reactive
+from textual import events
 
 
 @dataclass
 class ScreenInfo:
     size: tuple[int, int]
     content: str
+    screen: Screen
+
+
+class Floaty(Label):
+    CSS = """
+    Floaty {
+        dock: top;
+        margin: 0 0;
+        layer: slider;
+    }
+    """
+    offset_x = reactive(0)
+    offset_y = reactive(0)
+
+    def __init__(self, original: Widget, *args, **kwargs):
+        self.original = original
+        super().__init__(*args, **kwargs)
+        log(original.region)
+        self.styles.margin = (original.region.y, 0, 0, original.region.x)
+        # self.styles.background = "red"
+        self.offset_x = original.region.x
+        self.offset_y = original.region.y
+        # self.styles.margin = (original.region.y, 0, 0, original.region.x)
+
+    def watch_offset_x(self, new_value):
+        log(new_value)
+        margin = self.styles.margin
+        self.styles.margin = (margin.top, margin.right, margin.bottom, round(new_value))
+
+    def watch_offset_y(self, new_value):
+        margin = self.styles.margin
+        self.styles.margin = (
+            round(new_value),
+            margin.right,
+            margin.bottom,
+            margin.left,
+        )
+
+    def on_show(self):
+        log(self.region)
+        log(self.styles)
+        self.parent.float_this()
 
 
 class TransitionContainer(Widget):
@@ -24,6 +71,7 @@ class TransitionContainer(Widget):
     Screen TransitionContainer {
         height: 100%;
         width: 100%;
+        layers: normal slider;
         layout: vertical;
         overflow: hidden;
     }
@@ -32,8 +80,9 @@ class TransitionContainer(Widget):
 
     def __init__(self, from_screen, to_screen, transition):
         self.transition = transition
-        self.from_screen_info = from_screen
-        self.to_screen_info = to_screen
+        self.from_screen_info: ScreenInfo = from_screen
+        self.fade_out = True
+        self.to_screen_info: ScreenInfo = to_screen
         self.from_screen = Text.from_ansi(from_screen.content)
         self.to_screen = Text.from_ansi(to_screen.content)
         self.width = self.from_screen_info.size[0]
@@ -112,18 +161,118 @@ class TransitionContainer(Widget):
 
                 for (from_line, to_line) in zip(from_columns, to_columns):
                     yield Text("").join([from_line, to_line])
-            case "slide_right":
+            case "slideover_left":
                 from_columns = [
-                    x[0 : self.width - round(self.transition_offset) - 1]
+                    x[0 : self.width - round(self.transition_offset)]
                     for x in self.from_screen.split()
                 ]
                 to_columns = [
-                    x[self.width - 1 - round(self.transition_offset) : self.width]
+                    x[0 : round(self.transition_offset)] for x in self.to_screen.split()
+                ]
+
+                for (from_line, to_line) in zip(from_columns, to_columns):
+                    yield Text("").join([from_line, to_line])
+            case "wipe_left":
+                from_columns = [
+                    x[0 : self.width - round(self.transition_offset)]
+                    for x in self.from_screen.split()
+                ]
+                to_columns = [
+                    x[self.width - round(self.transition_offset) : self.width - 1]
                     for x in self.to_screen.split()
+                ]
+
+                for (from_line, to_line) in zip(from_columns, to_columns):
+                    yield Text("").join([from_line, to_line])
+            case "slide_right":
+                from_offset = max(0, self.width - round(self.transition_offset) - 1)
+
+                from_columns = [x[0:from_offset] for x in self.from_screen.split()]
+                to_columns = [
+                    x[from_offset : self.width] for x in self.to_screen.split()
                 ]
 
                 for lines in zip(to_columns, from_columns):
                     yield Text("").join(lines)
+            case "slideover_right":
+                from_offset = max(0, self.width - round(self.transition_offset) - 1)
+
+                from_columns = [
+                    x[round(self.transition_offset) : self.width - 1]
+                    for x in self.from_screen.split()
+                ]
+                to_columns = [
+                    x[from_offset : self.width] for x in self.to_screen.split()
+                ]
+
+                for lines in zip(to_columns, from_columns):
+                    yield Text("").join(lines)
+            case "wipe_right":
+                from_offset = max(0, self.width - round(self.transition_offset) - 1)
+
+                from_columns = [
+                    x[round(self.transition_offset) : self.width - 1]
+                    for x in self.from_screen.split()
+                ]
+                to_columns = [
+                    x[0 : round(self.transition_offset)] for x in self.to_screen.split()
+                ]
+
+                for lines in zip(to_columns, from_columns):
+                    yield Text("").join(lines)
+            case "fade_up" | "fade_down" | "fade_left" | "fade_right" | "morph":
+                log(self.transition_offset, self.fade_out)
+                if self.fade_out:
+                    self.styles.opacity = f"{round(105-self.transition_offset*2)+1}%"
+                    if self.transition_offset >= 50:
+                        self.fade_out = False
+                        log(self.transition_offset, self.fade_out)
+                    yield self.from_screen
+                else:
+                    self.styles.opacity = f"{round(self.transition_offset*2-100)}%"
+                    # self.styles.opacity = "25%"
+                    yield self.to_screen
+
+    def morph(self):
+        log("morphing")
+        log("Finding matching IDs")
+        from_ids = set(
+            x.id for x in self.from_screen_info.screen.walk_children() if x.id
+        )
+        to_ids = set(x.id for x in self.to_screen_info.screen.walk_children() if x.id)
+        log(f"{from_ids=}")
+        log(f"{to_ids=}")
+        morph_id = from_ids.intersection(to_ids)
+        log(morph_id)
+        if len(morph_id) > 1 or not morph_id:
+            raise Exception()
+        morph_id = morph_id.pop()
+
+        self.from_widget = self.from_screen_info.screen.query_one(f"#{morph_id}")
+        self.to_widget = self.to_screen_info.screen.query_one(f"#{morph_id}")
+        self.floaty = Floaty(self.from_widget, self.from_widget.renderable)
+        log(self.from_widget, self.from_widget.region)
+        log(self.to_widget, self.to_widget.region)
+        self.floaty.styles.layer = "slider"
+        self.floaty.styles.border = self.from_widget.styles.border
+        self.floaty.styles.width = self.from_widget.region.width
+        self.screen.mount(self.floaty)
+
+    def float_this(self):
+        duration = 0.75
+        self.animate(
+            "transition_offset",
+            100,
+            duration=1.5,
+            on_complete=self.screen.app.pop_screen,
+        )
+        self.floaty.animate("offset_x", self.to_widget.region.x, duration=duration)
+        self.floaty.animate("offset_y", self.to_widget.region.y, duration=duration)
+        self.floaty.styles.animate(
+            "width",
+            self.to_widget.region.width,
+            duration=duration,
+        )
 
     def render(self):
         return self
@@ -131,9 +280,12 @@ class TransitionContainer(Widget):
 
 class TransitionScreen(Screen):
 
-    DEFAULT_CSS = """
-    Screen TransitionScreen, TransitionScreen {
+    CSS = """
+    TransitionScreen {
         layout: vertical;
+        layers: normal slider;
+        padding: 0;
+        margin: 0;
     }
     TransitionScreen TransitionContainer {
         layout: vertical;
@@ -153,26 +305,39 @@ class TransitionScreen(Screen):
         )
         yield self.container
 
+    def float_this(self):
+        self.container.float_this()
+
     def finish_transition(self):
         self.app.pop_screen()
 
     def on_show(self, event) -> None:
         delay = 2
+        self.app.log(self.transition)
         match self.transition:
-            case "slide_up" | "slide_down":
+            case "slide_up" | "slide_down" | "slideover_up" | "slideover_down" | "wipe_up" | "wipe_down":
                 self.container.animate(
                     "transition_offset",
                     self.from_screen.size[1],
                     duration=delay,
                     on_complete=self.finish_transition,
                 )
-            case "slide_left" | "slide_right":
+            case "slide_left" | "slide_right" | "slideover_left" | "slideover_right" | "wipe_left" | "wipe_right":
                 self.container.animate(
                     "transition_offset",
                     self.from_screen.size[0],
                     duration=delay,
                     on_complete=self.finish_transition,
                 )
+            case "fade_up" | "fade_down" | "fade_left" | "fade_right":
+                self.container.animate(
+                    "transition_offset",
+                    100,
+                    duration=delay,
+                    on_complete=self.finish_transition,
+                )
+            case "morph":
+                self.container.morph()
             case _:
                 self.container.animate(
                     "transition_offset",
@@ -182,26 +347,81 @@ class TransitionScreen(Screen):
                 )
 
 
+class MessageScreen(Screen):
+    direction = "up"
+
+    def compose(self):
+        yield Static("hello")
+
+
 class LiquidScreen(Screen):
-    def on_screen_resume(self) -> None:
-        self.focus()
+    def on_screen_resume(self):
+        self.need_transition = True
 
-    def on_show(self, *args, **kwargs):
+    def on_show(self, event):
         self.app.screen_showed()
-        if 0:
-            self.app.log(f"{self} - on_Show")
-            width, height = self.size
-            console = Console(
-                width=width,
-                height=height,
-                file=io.StringIO(),
-                force_terminal=True,
-                color_system="truecolor",
-                record=True,
-                legacy_windows=False,
-            )
-            screen_render = self.app.screen._compositor.render(full=True)
-            console.print(screen_render)
-            text = console.export_text(styles=True)
+        self.need_transition = False
 
-            self.app.log(f"text from screen: {len(text)=}")
+    def _refresh_layout(self, size=None, full: bool = False) -> None:
+        """Refresh the layout (can change size and positions of widgets)."""
+        size = self.outer_size if size is None else size
+        if not size:
+            return
+
+        self._compositor.update_widgets(self._dirty_widgets)
+        self.update_timer.pause()
+        try:
+            hidden, shown, resized = self._compositor.reflow(self, size)
+            Hide = events.Hide
+            Show = events.Show
+
+            for widget in hidden:
+                widget.post_message_no_wait(Hide(self))
+
+            # We want to send a resize event to widgets that were just added or change since last layout
+            send_resize = shown | resized
+            ResizeEvent = events.Resize
+
+            layers = self._compositor.layers
+            for widget, (
+                region,
+                _order,
+                _clip,
+                virtual_size,
+                container_size,
+                _,
+            ) in layers:
+                widget._size_updated(region.size, virtual_size, container_size)
+                if widget in send_resize:
+                    widget.post_message_no_wait(
+                        ResizeEvent(self, region.size, virtual_size, container_size)
+                    )
+
+            for widget in shown:
+                widget.post_message_no_wait(Show(self))
+
+        except Exception as error:
+            self.app._handle_exception(error)
+            return
+        display_update = self._compositor.render(full=True)
+        if not self.need_transition:
+            self.app._display(self, display_update)
+        if not self.app._dom_ready:
+            self.app.post_message_no_wait(events.Ready(self))
+            self.app._dom_ready = True
+
+        # lines: list[Strip] = self.render_lines(Region(0, 0, *self.app.size))
+        # text = Text("\n").join(
+        #     Text("").join(Text(segment.text, style=segment.style))
+        #     for strip in lines
+        #     for segment in strip._segments
+        # )
+        # self.app.log(text)
+        # for strip in lines:
+        #     line = Text("").join(
+        #         Text(segment.text, style=segment.style) for segment in strip._segments
+        #     )
+        #     self.app.log(line)
+        # for segment in strip._segments:
+        #     self.app.log(segment)
+        #     self.app.log(Text(segment.text, style=segment.style))

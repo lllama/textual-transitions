@@ -1,20 +1,118 @@
 Screen {
+    align: center middle;
+    layout: grid;
+    grid-size: 2 3;
+    grid-rows: 2fr 1fr 1fr;
+    padding: 5 9;
+    background: #544e68;
+}
+
+.directions {
+    margin-top: 3;
+}
+
+DirectionScreen {
+    layout: grid;
+    grid-size: 2 1;
+    grid-columns: 30 1fr;
+    padding: 2 3;
+}
+
+MorphScreenOne {
+    layout: grid;
+    grid-size: 3 4;
+    grid-rows: 4fr 1fr 1fr 1fr;
+    padding: 0;
+}
+
+MorphScreenTwo {
     layout: grid;
     grid-size: 3 3;
+    grid-rows: 5 3 1fr;
+    padding: 0;
+}
+
+MorphScreenTwo Label {
+    margin-top: 2;
+    column-span: 3;
+}
+
+MorphScreenTwo Static {
+    column-span: 3;
+}
+
+#heading {
+    width: 100%;
+    height: auto;
+    column-span: 3;
+    padding-bottom: 0;
+    margin-bottom: 4;
+}
+
+Floaty {
+    dock: top;
+    margin: 0 0 0 0;
+    offset: 0 0;
+}
+
+MorphScreenOne Static,
+MorphScreenTwo Static {
+    height: auto;
+    padding: 0 2;
+    border: double #ffaa5e;
+    text-align: center;
+}
+
+Vertical {
+    height: 100%;
+
 }
 
 Button {
+    height: auto;
+    column-span: 2;
+}
+
+Placeholder {
     height: 100%;
-    width: 100%;
+    column-span: 2;
 }
 
-Static {
-    align: center middle;
+.options {
+    layout: grid;
+    grid-size: 2;
+    height: 100%;
 }
 
-Screen TransitionScreen,
+.container {
+    height: auto;
+    width: auto;
+}
+
+Checkbox {
+    height: auto;
+    width: auto;
+}
+
+.label {
+    height: 3;
+    content-align: center middle;
+    width: auto;
+}
+
+#custom-design {
+    background: darkslategrey;
+}
+
+#custom-design>.checkbox--switch {
+    color: dodgerblue;
+    background: darkslateblue;
+}
+
 TransitionScreen {
     layout: vertical;
+    padding: 0;
+    margin: 0;
 }
 
 TransitionScreen TransitionContainer {
