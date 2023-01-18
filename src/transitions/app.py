@@ -93,7 +93,7 @@ class DirectionScreen(LiquidScreen):
 
     def compose(self) -> ComposeResult:
         yield Vertical(
-            Static("[b]Transition Types\n", classes="label"),
+            Static("[b]Transition Types", classes="label"),
             Horizontal(
                 Static("Slide:        ", classes="label"),
                 Checkbox(id="slide", value=True),
@@ -117,24 +117,24 @@ class DirectionScreen(LiquidScreen):
             # classes="container",
             # )
             # yield Vertical(
-            Static("[b]Direction\n", classes="label directions"),
+            Static("[b]Direction", classes="label directions"),
             Horizontal(
-                Static("Up:     ", classes="label"),
+                Static("Up:           ", classes="label"),
                 Checkbox(value=True, id="up"),
                 classes="container",
             ),
             Horizontal(
-                Static("Down:   ", classes="label"),
+                Static("Down:         ", classes="label"),
                 Checkbox(id="down"),
                 classes="container",
             ),
             Horizontal(
-                Static("Left:   ", classes="label"),
+                Static("Left:         ", classes="label"),
                 Checkbox(id="left"),
                 classes="container",
             ),
             Horizontal(
-                Static("Right:  ", classes="label"),
+                Static("Right:        ", classes="label"),
                 Checkbox(id="right"),
                 classes="container",
             ),

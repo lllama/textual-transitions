@@ -8,7 +8,7 @@ Screen {
 }
 
 .directions {
-    margin-top: 3;
+    margin-top: 2;
 }
 
 DirectionScreen {
@@ -16,6 +16,10 @@ DirectionScreen {
     grid-size: 2 1;
     grid-columns: 30 1fr;
     padding: 2 3;
+}
+
+DirectionScreen Button {
+    margin-top: 1;
 }
 
 MorphScreenOne {
@@ -64,14 +68,15 @@ MorphScreenTwo Static {
 }
 
 Vertical {
-    height: 100%;
-
+    height: 90%;
 }
 
 Button {
     height: auto;
     column-span: 2;
 }
+
+
 
 Placeholder {
     height: 100%;
