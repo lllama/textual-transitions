@@ -237,20 +237,15 @@ jupyter = ["ipywidgets (>=7.5.1,<8.0.0)"]
 
 [[package]]
 name = "rich-pixels"
-version = "2.0.0"
+version = "2.1.1"
 description = "A Rich-compatible library for writing pixel images and ASCII art to the terminal."
 category = "main"
 optional = false
-python-versions = "^3.7"
-develop = false
+python-versions = ">=3.7,<4.0"
 
 [package.dependencies]
-pillow = "^9.0.0"
-rich = "^13.0.0"
-
-[package.source]
-type = "directory"
-url = "../rich-pixels"
+pillow = ">=9.0.0,<10.0.0"
+rich = ">=12.0.0"
 
 [[package]]
 name = "textual"
@@ -308,7 +303,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.11"
-content-hash = "238c177ee7a7cd6441d689cf0839ed0a8a3ed847c909dbe882c913e8ecffd23a"
+content-hash = "16631fb67162b77da6765c7b4da7eea2ab408621b2cffda81f11b5053f7a147b"
 
 [metadata.files]
 aiohttp = [
@@ -759,7 +754,10 @@ rich = [
     {file = "rich-13.1.0-py3-none-any.whl", hash = "sha256:f846bff22a43e8508aebf3f0f2410ce1c6f4cde429098bd58d91fde038c57299"},
     {file = "rich-13.1.0.tar.gz", hash = "sha256:81c73a30b144bbcdedc13f4ea0b6ffd7fdc3b0d3cc259a9402309c8e4aee1964"},
 ]
-rich-pixels = []
+rich-pixels = [
+    {file = "rich_pixels-2.1.1-py3-none-any.whl", hash = "sha256:24eccb904fcb6d2cf0727d7767ec81d3faaee8c64631a8bc6cf6d95bed2c34d6"},
+    {file = "rich_pixels-2.1.1.tar.gz", hash = "sha256:170e6d3ef84825967f451f40f7c7deee324af630141c701cf054575f2fd34abb"},
+]
 textual = [
     {file = "textual-0.9.1-py3-none-any.whl", hash = "sha256:97613f6855a10f82b1384346480c550324efed73f6d123b9064c277477eaa634"},
     {file = "textual-0.9.1.tar.gz", hash = "sha256:117816bbea6ca4009317ca079caf9af7653d577c3f849b58da0f2580bed239d0"},

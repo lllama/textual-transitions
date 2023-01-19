@@ -10,7 +10,7 @@ packages = [{include = "transitions", from = "src"}]
 python = "^3.11"
 textual = "^0.9.1"
 textual-imageview = "^0.1.1"
-rich-pixels = {path = "../rich-pixels"}
+rich-pixels = "^2.1.1"
 
 [tool.poetry.scripts]
 transitions = "transitions.__main__:run"
